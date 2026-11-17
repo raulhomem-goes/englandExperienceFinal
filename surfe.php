@@ -1,4 +1,6 @@
 <?php
+require_once('./config/database.php');
+
 $spots = [
     ["Sennen Cove", 50.0789, -5.6990, "Oeste", "Praia de ondas variadas, ideal para diferentes níveis de surfe."],
     ["Gwenver", 50.0870, -5.7010, "Oeste", "Praia mais isolada, com ondas fortes e mar aberto."],
