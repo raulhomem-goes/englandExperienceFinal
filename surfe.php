@@ -1,5 +1,13 @@
 <?php
-require_once('./config/database.php');
+require_once __DIR__ . '/config/database.php';
+try {
+    $sql = 'SELECT id, "imagemSurfista", nome, descricao, posicao FROM public.surfistas ORDER BY posicao ASC';
+    $stmt = $conexao->query($sql);
+    $surfistas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Erro ao buscar surfistas: " . $e->getMessage());
+    $surfistas = [];
+}
 
 $spots = [
     ["Sennen Cove", 50.0789, -5.6990, "Oeste", "Praia de ondas variadas, ideal para diferentes níveis de surfe."],
@@ -132,44 +140,55 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QU
             na inglaterra
         </h1>
     </div>
-    <section id="regioes" class="bg-[#0c203a] px-5 py-10 md:px-10 md:py-16">
+    <?php
+    $layouts = [
+        [
+            'grid' => 'md:col-span-7 md:col-start-1 h-[350px] md:h-[450px]',
+            'bg' => 'bg-[#24445a]'
+        ],
+        [
+            'grid' => 'md:col-span-5 md:col-start-8 md:mt-14 h-[300px] md:h-[380px]',
+            'bg' => 'bg-[#31566a]'
+        ],
+        [
+            'grid' => 'md:col-span-5 md:col-start-1 md:mt-[18px] h-[300px] md:h-[350px]',
+            'bg' => 'bg-[#806d4a]'
+        ],
+        [
+            'grid' => 'md:col-span-7 md:col-start-6 md:-mt-8 h-[350px] md:h-[400px]',
+            'bg' => 'bg-[#31566a]'
+        ]
+    ];
+    ?>
+    <section id="surfistas" class="bg-[#0c203a] px-5 py-10 md:px-10 md:py-16">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-0">
-            <!-- CARD 1 -->
-            <div class="group relative col-span-1 md:col-span-7 md:col-start-1 md:row-start-1 h-[350px] md:h-[450px] overflow-hidden rounded-sm bg-[#24445a]">
-                <div class="absolute inset-0 bg-gradient-to-t from-[#07182c] via-transparent to-transparent"></div>
-                <div class="absolute bottom-0 left-0 p-6 md:p-8">
-                    <p class="text-xs tracking-[0.2em] uppercase text-gray-300">Categoria</p>
-                    <h2 class="font-impact text-5xl md:text-7xl text-white uppercase leading-none">Título</h2>
-                    <p class="max-w-xs text-sm text-white mt-2">Descrição genérica para apresentar este conteúdo.</p>
-                </div>
-            </div>
-            <!-- CARD 2 -->
-            <div class="group relative col-span-1 md:col-span-5 md:col-start-8 md:row-start-1 md:mt-14 h-[300px] md:h-[380px] overflow-hidden rounded-sm bg-[#31566a]">
-                <div class="absolute inset-0 bg-gradient-to-t from-[#07182c] via-transparent to-transparent"></div>
-                <div class="absolute bottom-0 left-0 p-6 md:p-8">
-                    <p class="text-xs tracking-[0.2em] uppercase text-gray-300">Categoria</p>
-                    <h2 class="font-impact text-5xl md:text-7xl text-white uppercase leading-none">Título</h2>
-                    <p class="max-w-xs text-sm text-white mt-2">Descrição genérica para apresentar este conteúdo.</p>
-                </div>
-            </div>
-            <!-- CARD 3 -->
-            <div class="group relative col-span-1 md:col-span-5 md:col-start-1 md:row-start-2 md:-mt-[-18px] h-[300px] md:h-[350px] overflow-hidden rounded-sm bg-[#806d4a]">
-                <div class="absolute inset-0 bg-gradient-to-t from-[#07182c] via-transparent to-transparent"></div>
-                <div class="absolute bottom-0 left-0 p-6 md:p-8">
-                    <p class="text-xs tracking-[0.2em] uppercase text-gray-300">Categoria</p>
-                    <h2 class="font-impact text-5xl md:text-7xl text-white uppercase leading-none">Título</h2>
-                    <p class="max-w-xs text-sm text-white mt-2">Descrição genérica para apresentar este conteúdo.</p>
-                </div>
-            </div>
-            <!-- CARD 4 -->
-            <div class="group relative col-span-1 md:col-span-7 md:col-start-6 md:row-start-2 md:-mt-8 h-[350px] md:h-[400px] overflow-hidden rounded-sm bg-[#31566a]">
-                <div class="absolute inset-0 bg-gradient-to-t from-[#07182c] via-transparent to-transparent"></div>
-                <div class="absolute bottom-0 left-0 p-6 md:p-8">
-                    <p class="text-xs tracking-[0.2em] uppercase text-gray-300">Categoria</p>
-                    <h2 class="font-impact text-5xl md:text-7xl text-white uppercase leading-none">Título</h2>
-                    <p class="max-w-xs text-sm text-white mt-2">Descrição genérica para apresentar este conteúdo.</p>
-                </div>
-            </div>
+            <?php if (!empty($surfistas)): ?>
+                <?php foreach ($surfistas as $index => $surfista): ?>
+                    <?php $layout = $layouts[$index % count($layouts)]; ?>
+                    <div class="group relative col-span-1 <?= $layout['grid'] ?> overflow-hidden rounded-sm <?= $layout['bg'] ?>">
+                        <?php if (!empty($surfista['imagemSurfista'])): ?>
+                            <img
+                                src="<?= htmlspecialchars($surfista['imagemSurfista'], ENT_QUOTES, 'UTF-8') ?>"
+                                alt="<?= htmlspecialchars($surfista['nome'], ENT_QUOTES, 'UTF-8') ?>"
+                                class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                        <?php endif; ?>
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#07182c] via-transparent to-transparent"></div>
+                        <div class="absolute bottom-0 left-0 p-6 md:p-8">
+                            <p class="text-xs tracking-[0.2em] uppercase text-gray-300">Surfista local</p>
+                            <h2 class="font-impact text-5xl md:text-7xl text-white uppercase leading-none">
+                                <?= htmlspecialchars($surfista['nome'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                            </h2>
+                            <p class="max-w-xs text-sm text-white mt-2">
+                                <?= htmlspecialchars($surfista['descricao'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                            </p>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p class="col-span-12 text-center text-white">
+                    Nenhum surfista cadastrado no momento.
+                </p>
+            <?php endif; ?>
         </div>
     </section>
     <section id="mapa" class="bg-[#0c203a] px-5 py-12 md:px-10 md:py-16">

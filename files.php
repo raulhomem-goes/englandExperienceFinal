@@ -10,6 +10,19 @@ if (empty($_SESSION['csrf'])) {
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
 }
 
+$surfistas = [];
+try {
+    $stmtSurfistas = $conexao->query('SELECT id, "imagemSurfista", nome, descricao, posicao FROM public.surfistas ORDER BY posicao ASC, id ASC');
+    $surfistas = $stmtSurfistas->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Erro ao buscar surfistas: " . $e->getMessage());
+}
+$proximaPosicaoSurfista = 1;
+foreach ($surfistas as $surfista) {
+    $proximaPosicaoSurfista = max($proximaPosicaoSurfista, (int) $surfista['posicao'] + 1);
+}
+
+
 // Pontos turísticos (tabela própria, independente da imagem principal)
 $pontos = [];
 try {
@@ -212,6 +225,105 @@ $msgAtual = $mensagens[$msgKey] ?? null;
                     <p class="text-gray-400 text-center py-10">Nenhum ponto turístico cadastrado. O site exibe os pontos padrão enquanto a lista estiver vazia.</p>
                 <?php } ?>
             </section>
+
+            <!-- SECTION: SURFISTAS -->
+
+            <section class="mt-8 bg-black/60 backdrop-blur-md border border-white/20 p-6 md:p-10 rounded-sm">
+                <div class="flex items-center justify-between mb-8 border-b border-white/20 pb-5">
+                    <div>
+                        <h2 class="font-impact text-3xl md:text-4xl text-white">SURFISTAS</h2>
+                        <p class="text-gray-400 text-sm mt-2">Adicione, edite e gerencie os surfistas exibidos na página de surfe.</p>
+                    </div>
+                    <span class="text-rose-500 font-impact text-3xl">04</span>
+                </div>
+                <!-- FORMULÁRIO DE ADIÇÃO -->
+                <div class="mb-10 border border-white/10 bg-white/5 p-5 md:p-7">
+                    <h3 class="font-impact text-2xl md:text-3xl mb-6">ADICIONAR SURFISTA</h3>
+                    <form action="./src/uploads/surfista_salvar.php" method="POST" enctype="multipart/form-data" class="flex flex-col gap-5">
+                        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf'], ENT_QUOTES, 'UTF-8') ?>">
+                        <div class="flex flex-col gap-2">
+                            <label for="surfista-nome" class="text-xs font-bold uppercase tracking-wider text-gray-300">Nome</label>
+                            <input id="surfista-nome" type="text" name="nome" maxlength="150" required class="bg-white/10 border border-white/30 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-rose-600" placeholder="Nome do surfista">
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label for="surfista-posicao" class="text-xs font-bold uppercase tracking-wider text-gray-300">Posição</label>
+                            <input id="surfista-posicao" type="number" name="posicao" min="1" value="<?= $proximaPosicaoSurfista ?>" required class="bg-white/10 border border-white/30 px-4 py-3 text-white focus:outline-none focus:border-rose-600">
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label for="surfista-imagem" class="text-xs font-bold uppercase tracking-wider text-gray-300">Imagem (JPG, PNG ou WEBP, até 5 MB)</label>
+                            <input id="surfista-imagem" type="file" name="imagemSurfista" accept="image/jpeg,image/png,image/webp" required class="bg-white/10 border border-white/30 px-4 py-2.5 text-gray-300 file:mr-4 file:border-0 file:bg-rose-600 file:px-4 file:py-2 file:text-xs file:font-bold file:uppercase file:text-white hover:file:bg-rose-700">
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label for="surfista-descricao" class="text-xs font-bold uppercase tracking-wider text-gray-300">Descrição</label>
+                            <textarea id="surfista-descricao" name="descricao" rows="3" required class="bg-white/10 border border-white/30 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-rose-600" placeholder="Descrição do surfista"></textarea>
+                        </div>
+                        <button type="submit" class="flex items-center justify-center bg-rose-600 px-8 py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-rose-700 hover:-translate-y-1">
+                            Adicionar surfista
+                        </button>
+                    </form>
+                </div>
+                <!-- LISTAGEM E EDIÇÃO -->
+                <?php if (!empty($surfistas)) { ?>
+                    <div class="mb-6 flex items-center justify-between">
+                        <h3 class="font-impact text-2xl md:text-3xl">SURFISTAS CADASTRADOS</h3>
+                        <span class="text-xs uppercase tracking-wider text-gray-400"><?= count($surfistas) ?> registros</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <?php foreach ($surfistas as $surfista) {
+                            $imagemSurfistaAtual = trim($surfista['imagemSurfista'] ?? '');
+                        ?>
+                            <div class="flex flex-col border border-white/10 bg-white/5">
+                                <?php if ($imagemSurfistaAtual !== '') { ?>
+                                    <img src="<?= htmlspecialchars($imagemSurfistaAtual, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($surfista['nome'], ENT_QUOTES, 'UTF-8') ?>" class="w-full h-56 object-cover">
+                                <?php } else { ?>
+                                    <div class="w-full h-56 flex items-center justify-center bg-white/10 text-gray-400 text-sm uppercase tracking-wider">
+                                        Sem imagem cadastrada
+                                    </div>
+                                <?php } ?>
+                                <div class="p-5 flex flex-col gap-4">
+                                    <div class="flex items-center justify-between">
+                                        <h3 class="font-impact text-2xl text-white uppercase"><?= htmlspecialchars($surfista['nome'], ENT_QUOTES, 'UTF-8') ?></h3>
+                                        <span class="font-impact text-lg text-rose-500">#<?= (int) $surfista['posicao'] ?></span>
+                                    </div>
+                                    <form action="./src/uploads/surfista_salvar.php" method="POST" enctype="multipart/form-data" class="flex flex-col gap-4">
+                                        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf'], ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="id" value="<?= (int) $surfista['id'] ?>">
+                                        <div class="flex flex-col gap-2">
+                                            <label for="nome-<?= (int) $surfista['id'] ?>" class="text-xs font-bold uppercase tracking-wider text-gray-300">Nome</label>
+                                            <input id="nome-<?= (int) $surfista['id'] ?>" type="text" name="nome" maxlength="150" value="<?= htmlspecialchars($surfista['nome'], ENT_QUOTES, 'UTF-8') ?>" required class="w-full bg-white/10 border border-white/30 px-4 py-3 text-white focus:outline-none focus:border-rose-600">
+                                        </div>
+                                        <div class="flex flex-col gap-2">
+                                            <label for="imagem-<?= (int) $surfista['id'] ?>" class="text-xs font-bold uppercase tracking-wider text-gray-300">Substituir imagem (opcional)</label>
+                                            <input id="imagem-<?= (int) $surfista['id'] ?>" type="file" name="imagemSurfista" accept="image/jpeg,image/png,image/webp" class="w-full bg-white/10 border border-white/30 px-4 py-2.5 text-gray-300 text-sm file:mr-4 file:border-0 file:bg-rose-600 file:px-3 file:py-2 file:text-xs file:font-bold file:uppercase file:text-white hover:file:bg-rose-700">
+                                        </div>
+                                        <div class="flex flex-col gap-2">
+                                            <label for="descricao-<?= (int) $surfista['id'] ?>" class="text-xs font-bold uppercase tracking-wider text-gray-300">Descrição</label>
+                                            <textarea id="descricao-<?= (int) $surfista['id'] ?>" name="descricao" rows="3" required class="w-full bg-white/10 border border-white/30 px-4 py-3 text-white text-sm focus:outline-none focus:border-rose-600"><?= htmlspecialchars($surfista['descricao'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                                        </div>
+                                        <div class="flex flex-col gap-2">
+                                            <label for="posicao-<?= (int) $surfista['id'] ?>" class="text-xs font-bold uppercase tracking-wider text-gray-300">Posição</label>
+                                            <input id="posicao-<?= (int) $surfista['id'] ?>" type="number" name="posicao" min="1" value="<?= (int) $surfista['posicao'] ?>" required class="w-full bg-white/10 border border-white/30 px-4 py-3 text-white focus:outline-none focus:border-rose-600">
+                                        </div>
+                                        <button type="submit" class="flex items-center justify-center bg-rose-600 px-5 py-3 text-sm font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-rose-700 hover:-translate-y-1">
+                                            Salvar alterações
+                                        </button>
+                                    </form>
+                                    <form action="./src/uploads/surfista_delete.php" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este surfista?');">
+                                        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf'], ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="id" value="<?= (int) $surfista['id'] ?>">
+                                        <button type="submit" class="w-full flex items-center justify-center border border-rose-600/70 bg-transparent px-5 py-3 text-sm font-bold uppercase tracking-wider text-rose-500 transition-all duration-300 hover:bg-rose-600 hover:text-white">
+                                            Excluir surfista
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        <?php } ?>
+                    </div>
+                <?php } else { ?>
+                    <p class="text-gray-400 text-center py-10">Nenhum surfista cadastrado. Utilize o formulário acima para adicionar o primeiro.</p>
+                <?php } ?>
+            </section>
+
 
             <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mt-10">
                 <a href="index.php" class="group flex items-center justify-center border border-white/40 bg-white/10 px-8 py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-white hover:text-black hover:-translate-y-1">
