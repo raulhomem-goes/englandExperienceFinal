@@ -42,32 +42,53 @@ if (!is_dir($pasta)) {
 }
 
 $nomeArquivo = bin2hex(random_bytes(16)) . '.' . $extensoes[$mime];
-if (!move_uploaded_file($arquivo['tmp_name'], $pasta . $nomeArquivo)) {
+$caminho = $pasta . $nomeArquivo;
+if (!move_uploaded_file($arquivo['tmp_name'], $caminho)) {
     header('Location: ' . $voltar . 'ponto_erro');
     exit;
 }
 
-$posicao = filter_input(INPUT_POST, 'posicao', FILTER_VALIDATE_INT);
-if (!$posicao || $posicao < 1) {
-    $maxPos = (int) $conexao->query("SELECT COALESCE(MAX(posicao), 0) FROM pontosturisticos")->fetchColumn();
-    $posicao = $maxPos + 1;
+try {
+    $conexao->beginTransaction();
+
+    $posicao = filter_input(INPUT_POST, 'posicao', FILTER_VALIDATE_INT);
+    if (!$posicao || $posicao < 1) {
+        $maxPos = (int) $conexao->query("SELECT COALESCE(MAX(posicao), 0) FROM pontosturisticos")->fetchColumn();
+        $posicao = $maxPos + 1;
+    }
+
+    $stmtExiste = $conexao->prepare("SELECT COUNT(*) FROM pontosturisticos WHERE posicao = :pos");
+    $stmtExiste->execute([':pos' => $posicao]);
+
+    if ((int) $stmtExiste->fetchColumn() > 0) {
+        // Postgres não aceita ORDER BY no UPDATE e confere a UNIQUE linha a linha.
+        // Por isso o deslocamento é feito em duas etapas, passando por valores negativos:
+        // 1) posicao vira -(posicao + 1)   2) posicao vira o valor positivo (posicao + 1)
+        $conexao->prepare("UPDATE pontosturisticos SET posicao = -(posicao + 1) WHERE posicao >= :pos")
+            ->execute([':pos' => $posicao]);
+        $conexao->exec("UPDATE pontosturisticos SET posicao = -posicao WHERE posicao < 0");
+    }
+
+    $sql = $conexao->prepare("INSERT INTO pontosturisticos (nome, descricao, imagem, posicao) VALUES (:nome, :descricao, :imagem, :posicao)");
+    $sql->execute([
+        ':nome'      => $nome,
+        ':descricao' => $descricao,
+        ':imagem'    => $nomeArquivo,
+        ':posicao'   => $posicao
+    ]);
+
+    $conexao->commit();
+} catch (PDOException $e) {
+    if ($conexao->inTransaction()) {
+        $conexao->rollBack();
+    }
+    if (is_file($caminho)) {
+        unlink($caminho);
+    }
+    error_log($e->getMessage());
+    header('Location: ' . $voltar . 'ponto_erro');
+    exit;
 }
-
-$stmtExiste = $conexao->prepare("SELECT COUNT(*) FROM pontosturisticos WHERE posicao = :pos");
-$stmtExiste->execute([':pos' => $posicao]);
-
-if ($stmtExiste->fetchColumn() > 0) {
-    $conexao->prepare("UPDATE pontosturisticos SET posicao = posicao + 1 WHERE posicao >= :pos ORDER BY posicao DESC")
-        ->execute([':pos' => $posicao]);
-}
-
-$sql = $conexao->prepare("INSERT INTO pontosturisticos (nome, descricao, imagem, posicao) VALUES (:nome, :descricao, :imagem, :posicao)");
-$sql->execute([
-    ':nome'      => $nome,
-    ':descricao' => $descricao,
-    ':imagem'    => $nomeArquivo,
-    ':posicao'   => $posicao
-]);
 
 header('Location: ' . $voltar . 'ponto_ok');
 exit;

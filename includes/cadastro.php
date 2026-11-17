@@ -13,8 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($senha !== $confirmarSenha) {
         $erro = 'As senhas não coincidem.';
     } else {
+        // lower() nos dois lados: no Postgres a comparação diferencia maiúsculas de minúsculas
         $checkEmail = $conexao->prepare(
-            "SELECT id FROM usuarios WHERE email = :email"
+            "SELECT id FROM usuarios WHERE lower(email) = lower(:email)"
         );
         $checkEmail->execute(['email' => $email]);
         if ($checkEmail->fetch()) {
@@ -32,7 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 $sucesso = 'Cadastro realizado com sucesso.';
             } catch (PDOException $e) {
-                $erro = 'Um erro inesperado ocorreu.';
+                // 23505 = violação de índice único (e-mail já existe)
+                if ($e->getCode() === '23505') {
+                    $erro = 'Esse email já foi registrado.';
+                } else {
+                    error_log($e->getMessage());
+                    $erro = 'Um erro inesperado ocorreu.';
+                }
             }
         }
     }
@@ -44,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="../src/output.css" rel="stylesheet">
+    <link href="../src/output.css" rel="stylesheet">
     <title>Cadastro</title>
 </head>
 

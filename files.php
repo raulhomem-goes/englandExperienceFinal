@@ -119,6 +119,11 @@ $msgAtual = $mensagens[$msgKey] ?? null;
                         <p class="text-gray-400 text-center py-10">Nenhuma imagem no banner.</p>
                     <?php } ?>
                 </section>
+                <div class="col-span-1 lg:col-span-2 flex justify-center items-center mt-10">
+                    <a href="dashboard.php" class="group flex items-center justify-center bg-rose-600 px-8 py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-rose-700 hover:-translate-y-1">
+                        Publicar imagem
+                    </a>
+                </div>
             </div>
 
             <!-- NOVA SECTION: PONTOS TURÍSTICOS (não mexe no banner/imagem principal) -->
@@ -208,10 +213,7 @@ $msgAtual = $mensagens[$msgKey] ?? null;
                 <?php } ?>
             </section>
 
-            <div class="flex flex-col sm:flex-row justify-center gap-4 mt-10">
-                <a href="dashboard.php" class="group flex items-center justify-center bg-rose-600 px-8 py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-rose-700 hover:-translate-y-1">
-                    Publicar imagem
-                </a>
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mt-10">
                 <a href="index.php" class="group flex items-center justify-center border border-white/40 bg-white/10 px-8 py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-white hover:text-black hover:-translate-y-1">
                     Voltar ao início
                 </a>

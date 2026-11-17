@@ -11,8 +11,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$email || $senha === '') {
         $erro = 'Preencha todos os campos.';
     } else {
+        // lower() nos dois lados: no Postgres a comparação diferencia maiúsculas de minúsculas
         $sql = $conexao->prepare(
-            "SELECT id, nome, email, senha FROM usuarios WHERE email = :email"
+            "SELECT id, nome, email, senha FROM usuarios WHERE lower(email) = lower(:email)"
         );
         $sql->execute(['email' => $email]);
         $usuario = $sql->fetch();
@@ -27,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $erro = 'Nome ou senha inválidos.';
+        $erro = 'E-mail ou senha inválidos.';
     }
 }
 ?>
@@ -38,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="../src/output.css" rel="stylesheet">
+    <link href="../src/output.css" rel="stylesheet">
     <title>Login</title>
 </head>
 
@@ -65,8 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button type="submit" class="w-full bg-rose-600 py-3 mt-2 font-bold uppercase tracking-wider hover:bg-rose-700 transition-colors">
                         Entrar
                     </button>
-                    <?php if (isset($erro)) { ?>
-                        <p class="text-red-500 text-center w-full text-2xl"><?= $erro ?></p>
+                    <?php if ($erro !== '') { ?>
+                        <p class="text-red-500 text-center w-full text-2xl"><?= htmlspecialchars($erro, ENT_QUOTES, 'UTF-8') ?></p>
                     <?php } ?>
                 </form>
                 <p class="text-center text-gray-300 text-sm mt-8">
